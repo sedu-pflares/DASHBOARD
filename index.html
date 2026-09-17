@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>S.Edu Dashboard Vendedores</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#061126;--bg2:#0b1833;--panel:#0d1b36;--panel2:#102242;--text:#f5f8ff;--muted:#91a1bd;--line:#203354;--blue:#1687ff;--cyan:#18d4e8;--green:#18d39b;--purple:#8b5cf6;--orange:#ff8b2d;--pink:#ff477e;--shadow:0 18px 45px #0008}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,Arial,sans-serif;background:radial-gradient(circle at 75% 0,#123b75 0,#07152d 34%,#030a19 100%);color:var(--text)}
+button,input,select{font:inherit}.app{min-height:100vh;display:flex;flex-direction:column}
+
+/* SIDEBAR DESKTOP */
+.sidebar{width:248px;position:fixed;inset:0 auto 0 0;padding:22px 16px;background:#06132aee;border-right:1px solid #173056;z-index:20;transition:all .3s ease}
+.logo{display:flex;gap:11px;align-items:center;padding:4px 7px 28px}.logo img{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:11px}.logo b{font-size:16px}.logo small{display:block;color:#a7b7d2;font-size:11px;margin-top:3px}
+.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#aebbd0;text-align:left;padding:12px 13px;border-radius:10px;cursor:pointer;font-weight:650;transition:all .2s}.nav button:hover,.nav button.active{background:linear-gradient(90deg,#1279ec,#125bc4);color:white;box-shadow:0 8px 20px #0877ff33}
+.side-footer{position:absolute;left:18px;right:18px;bottom:25px;color:#8092af;font-size:11px;border-top:1px solid #1b2b48;padding-top:16px}
+
+/* CONTEÚDO PRINCIPAL */
+.main{margin-left:248px;width:calc(100% - 248px);padding:24px 28px 40px;transition:all .3s ease}
+.top{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:20px}
+.top h1{font-size:24px;margin:0}.top p{margin:4px 0;color:var(--muted);font-size:13px}
+.user{display:flex;gap:10px;align-items:center}.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#dce8ff,#7387a9);display:grid;place-items:center;color:#16315b;font-weight:900}
+
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:15px}
+.btn{background:#0d1c35;border:1px solid #284264;color:#e9f1ff;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px}
+.btn:hover{border-color:#4a74a9}.btn.primary{background:linear-gradient(135deg,#0c83ff,#1554d8);border:0}.btn.green{background:linear-gradient(135deg,#11c995,#0c9f7a);border:0}.btn.danger{background:linear-gradient(135deg,#ff477e,#c71545);border:0}
+
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;padding:12px;background:#08172fee;border:1px solid var(--line);border-radius:13px;margin-bottom:15px}
+.filters select,.filters input{background:#0c1b34;color:#dce8fa;border:1px solid #29415f;border-radius:8px;padding:9px 10px;width:100%}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.metric{position:relative;overflow:hidden;padding:16px;border-radius:13px;min-height:115px;border:1px solid #ffffff14;box-shadow:var(--shadow)}
+.metric:nth-child(1){background:linear-gradient(135deg,#067c6e,#075f65)}
+.metric:nth-child(2){background:linear-gradient(135deg,#0759bc,#0d408f)}
+.metric:nth-child(3){background:linear-gradient(135deg,#4823b5,#321982)}
+.metric:nth-child(4){background:linear-gradient(135deg,#c75a0a,#93400b)}
+.metric:nth-child(5){background:linear-gradient(135deg,#a51e53,#7d153e)}
+.metric:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-30px;top:-35px;background:#fff1}
+.metric small{font-weight:700;font-size:12px}.metric strong{display:block;font-size:22px;margin:8px 0 4px}
+.delta{font-size:11px;font-weight:800}.up{color:#41efbc}.down{color:#ffd0da}
+
+.layout{display:grid;grid-template-columns:1.55fr 1fr;gap:13px;margin-top:13px}
+.card{background:#091831dd;border:1px solid var(--line);border-radius:13px;padding:16px;box-shadow:var(--shadow);margin-bottom:15px;overflow:hidden}
+.card h3{font-size:15px;margin:0 0 14px}.chart{height:260px;position:relative;width:100%}
+
+.table-responsive{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rank table,.data-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.rank th,.rank td,.data-table th,.data-table td{padding:10px 8px;border-bottom:1px solid #1d2e4b;text-align:left}
+.rank th,.data-table th{color:#778ba8;font-size:11px}
+.seller{display:flex;gap:8px;align-items:center}.mini-avatar{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#2b4b78;font-size:10px;font-weight:800}
+.bar{height:6px;background:#1b2c49;border-radius:10px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:10px}
+
+.lower{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:13px;margin-top:13px}
+.funnel{display:grid;gap:10px}.funnel-row{display:grid;grid-template-columns:90px 1fr 40px;gap:8px;align-items:center;font-size:12px}
+.funnel-row .bar{margin:0;height:8px}.funnel-row i{background:linear-gradient(90deg,var(--purple),var(--blue))}
+.report{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1d2e4b}.report:last-child{border:0}.report b{font-size:12px}.report span{font-size:11px;color:var(--muted)}.report button{border:0;background:transparent;color:#53a8ff;cursor:pointer;font-size:16px}
+.donut{height:210px;position:relative;width:100%}
+
+.view-section{display:none}.view-section.active{display:block}
+.form-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:15px;background:#0b1933;padding:14px;border-radius:10px;border:1px solid var(--line)}
+.form-group input,.form-group select{background:#061126;border:1px solid #253a5c;color:#fff;padding:10px;border-radius:6px;width:100%}
+
+/* MODO APRESENTAÇÃO */
+body.presentation-mode .sidebar{display:none !important}
+body.presentation-mode .main{margin-left:0 !important;width:100% !important;padding:15px !important}
+body.presentation-mode .toolbar{display:none !important}
+body.presentation-mode .mobile-nav{display:none !important}
+.btn-close-pres{display:none;position:fixed;top:12px;right:12px;z-index:1000;background:#ff477e;border:0;color:#fff;padding:8px 14px;border-radius:8px;font-weight:bold;cursor:pointer;box-shadow:0 8px 20px #0008;font-size:12px}
+body.presentation-mode .btn-close-pres{display:block}
+
+/* MENU MOBILE INFERIOR */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:60px;background:#07152ceF;backdrop-filter:blur(10px);border-top:1px solid #263b5d;z-index:90;justify-content:space-around;align-items:center}
+.mobile-nav button{background:transparent;border:0;color:#91a4c1;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 10px}
+.mobile-nav button.active{color:#48a6ff;font-weight:bold}
+.mobile-nav button span{font-size:16px}
+
+/* REGRAS ESPECÍFICAS PARA CELULAR / TABLET */
+@media(max-width:900px){
+ .sidebar{display:none}
+ .main{margin-left:0;width:100%;padding:15px 15px 75px}
+ .layout{grid-template-columns:1fr}
+ .lower{grid-template-columns:1fr}
+ .mobile-nav{display:flex}
+ .top h1{font-size:20px}
+ .user{display:none}
+ .metrics{grid-template-columns:1fr 1fr}
+ .toolbar .btn{flex:1;font-size:12px;padding:8px 10px}
+}
+
+@media(max-width:480px){
+ .metrics{grid-template-columns:1fr 1fr}
+ .metric{padding:12px;min-height:100px}
+ .metric strong{font-size:18px}
+ .metric small{font-size:11px}
+ .chart{height:200px}
+ .donut{height:180px}
+ .filters{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<button class="btn-close-pres" onclick="closePresentation()">✕ Sair do Modo Apresentação</button>
+
+<div class="app">
+<!-- SIDEBAR DESKTOP -->
+<aside class="sidebar">
+ <div class="logo"><img src="https://s.edu.mailing.skylineweb.com.br/f/RmBUA/WhatsApp_Image_2026-04-22_at_08.27.49-removebg-preview.png"><div><b>S.Edu</b><small>Dashboard Vendedores</small></div></div>
+ <nav class="nav">
+  <button class="active" onclick="switchTab('visao', this)">⌂ &nbsp; Visão geral</button>
+  <button onclick="switchTab('vendedores', this)">♙ &nbsp; Vendedores</button>
+  <button onclick="switchTab('vendas', this)">▣ &nbsp; Vendas</button>
+  <button onclick="switchTab('metas', this)">◎ &nbsp; Metas</button>
+  <button onclick="switchTab('relatorios', this)">▤ &nbsp; Relatórios</button>
+  <button onclick="switchTab('produtos', this)">◈ &nbsp; Produtos</button>
+  <button onclick="switchTab('clientes', this)">♧ &nbsp; Clientes</button>
+  <button onclick="switchTab('ranking', this)">★ &nbsp; Ranking</button>
+  <button onclick="switchTab('configuracoes', this)">⚙ &nbsp; Configurações</button>
+ </nav>
+ <div class="side-footer">S.Edu Dashboard Vendedores<br>Performance comercial em tempo real</div>
+</aside>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="main">
+<header class="top">
+ <div><h1>Olá, Time de Vendas! 👋</h1><p>Acompanhe o desempenho e metas da equipe.</p></div>
+ <div class="user"><div class="avatar">A</div><div><b>Administrador</b><br><small style="color:#8fa0bb">Equipe S.Edu</small></div></div>
+</header>
+
+<div class="toolbar">
+ <button class="btn primary" onclick="openPresentation()">▣ Apresentar</button>
+ <button class="btn green" onclick="exportExcel()">📊 Excel</button>
+ <button class="btn" onclick="window.print()">⎙ Imprimir</button>
+</div>
+
+<!-- VISÃO GERAL -->
+<div id="sec-visao" class="view-section active">
+ <section class="filters">
+  <select id="filter-period" onchange="renderAll()"><option value="all">Todo o Período</option><option value="2026-09" selected>Setembro 2026</option><option value="2026-08">Agosto 2026</option></select>
+  <select id="filter-seller" onchange="renderAll()"><option value="all">Todos os vendedores</option></select>
+  <select id="filter-team" onchange="renderAll()"><option value="all">Todas as equipes</option><option value="Inside Sales">Inside Sales</option><option value="Campo">Campo</option></select>
+  <select id="filter-product" onchange="renderAll()"><option value="all">Todos os produtos</option></select>
+ </section>
+
+ <section class="metrics">
+  <div class="metric"><small>💰 Total Vendas</small><strong id="m-vendas">R$ 0</strong><span class="delta up">▲ Tempo real</span></div>
+  <div class="metric"><small>🛒 Qtd Vendas</small><strong id="m-qtd">0</strong><span class="delta up">▲ Tempo real</span></div>
+  <div class="metric"><small>🎯 Meta Equipe</small><strong id="m-meta">R$ 0</strong><span class="delta up" id="m-ating">0% atingido</span></div>
+  <div class="metric"><small>👤 Ticket Médio</small><strong id="m-ticket">R$ 0</strong><span class="delta up">▲ Calculado</span></div>
+  <div class="metric"><small>★ Comissão</small><strong id="m-comissao">R$ 0</strong><span class="delta up">▲ Calculado</span></div>
+ </section>
+
+ <section class="layout">
+  <div class="card"><h3>📈 Evolução de Vendas</h3><div class="chart"><canvas id="lineChart"></canvas></div></div>
+  <div class="card rank"><h3>🏆 Performance por Vendedor</h3><div class="table-responsive"><table id="tbl-rank-overview"><thead><tr><th>Vendedor</th><th>Vendas</th><th>Ating.</th></tr></thead><tbody></tbody></table></div></div>
+ </section>
+
+ <section class="lower">
+  <div class="card"><h3>🔻 Funil Comercial</h3><div class="funnel">
+   <div class="funnel-row"><b>Leads</b><div class="bar"><i style="width:100%"></i></div><b id="fn-leads">0</b></div>
+   <div class="funnel-row"><b>Contatos</b><div class="bar"><i style="width:82%"></i></div><b id="fn-cont">0</b></div>
+   <div class="funnel-row"><b>Oportun.</b><div class="bar"><i style="width:60%"></i></div><b id="fn-oport">0</b></div>
+   <div class="funnel-row"><b>Propostas</b><div class="bar"><i style="width:39%"></i></div><b id="fn-prop">0</b></div>
+   <div class="funnel-row"><b>Ganhos</b><div class="bar"><i style="width:26%"></i></div><b id="fn-ganhos">0</b></div>
+  </div></div>
+  <div class="card"><h3>🥧 Vendas por Produto</h3><div class="donut"><canvas id="donutChart"></canvas></div></div>
+  <div class="card"><h3>📄 Relatórios Rápido</h3>
+   <div class="report"><div><b>Performance</b><br><span>Meta e Comissão</span></div><button onclick="exportExcel()">↓</button></div>
+   <div class="report"><div><b>Mais Vendidos</b><br><span>Produtos e Qtd</span></div><button onclick="exportExcel()">↓</button></div>
+   <div class="report"><div><b>Clientes</b><br><span>Base cadastrada</span></div><button onclick="exportExcel()">↓</button></div>
+  </div>
+ </section>
+</div>
+
+<!-- VENDEDORES -->
+<div id="sec-vendedores" class="view-section">
+ <div class="card">
+  <h3>Novo Vendedor</h3>
+  <form id="form-vendedor" class="form-group" onsubmit="addVendedor(event)">
+   <input type="text" id="v-nome" placeholder="Nome" required>
+   <select id="v-equipe" required><option value="Inside Sales">Inside Sales</option><option value="Campo">Campo</option></select>
+   <input type="number" id="v-meta" placeholder="Meta (R$)" required>
+   <input type="number" id="v-comissao" placeholder="% Comiss." step="0.1" value="5" required>
+   <button type="submit" class="btn primary">Salvar</button>
+  </form>
+  <h3>Vendedores Cadastrados</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-vendedores"><thead><tr><th>Nome</th><th>Equipe</th><th>Meta</th><th>Com. %</th><th>Ação</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- VENDAS -->
+<div id="sec-vendas" class="view-section">
+ <div class="card">
+  <h3>Lançar Venda</h3>
+  <form id="form-venda" class="form-group" onsubmit="addVenda(event)">
+   <select id="vnda-vendedor" required><option value="">Vendedor</option></select>
+   <select id="vnda-produto" onchange="autoFillPrice()" required><option value="">Produto</option></select>
+   <select id="vnda-cliente" required><option value="">Cliente</option></select>
+   <input type="number" id="vnda-valor" placeholder="Valor (R$)" step="0.01" required>
+   <input type="date" id="vnda-data" required>
+   <button type="submit" class="btn green">Registrar</button>
+  </form>
+  <h3>Histórico de Vendas</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-vendas"><thead><tr><th>Data</th><th>Vendedor</th><th>Produto</th><th>Cliente</th><th>Valor</th><th>Ação</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- METAS -->
+<div id="sec-metas" class="view-section">
+ <div class="card">
+  <h3>Acompanhamento de Metas</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-metas"><thead><tr><th>Vendedor</th><th>Meta</th><th>Realizado</th><th>Ating.</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- RELATÓRIOS -->
+<div id="sec-relatorios" class="view-section">
+ <div class="card">
+  <h3>Relatórios</h3>
+  <p style="color:var(--muted);font-size:13px">Exporte os dados em Excel ou imprima o relatório completo.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+   <button class="btn green" onclick="exportExcel()">📊 Exportar Excel (.xlsx)</button>
+   <button class="btn primary" onclick="window.print()">⎙ Imprimir Relatório</button>
+  </div>
+ </div>
+</div>
+
+<!-- PRODUTOS -->
+<div id="sec-produtos" class="view-section">
+ <div class="card">
+  <h3>Cadastrar Produto</h3>
+  <form id="form-produto" class="form-group" onsubmit="addProduto(event)">
+   <input type="text" id="p-nome" placeholder="Nome do Produto" required>
+   <input type="number" id="p-preco" placeholder="Preço (R$)" step="0.01" required>
+   <button type="submit" class="btn primary">Salvar</button>
+  </form>
+  <h3>Produtos</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-produtos"><thead><tr><th>Nome</th><th>Preço Base</th><th>Ação</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- CLIENTES -->
+<div id="sec-clientes" class="view-section">
+ <div class="card">
+  <h3>Cadastrar Cliente</h3>
+  <form id="form-cliente" class="form-group" onsubmit="addCliente(event)">
+   <input type="text" id="c-nome" placeholder="Nome / Razão Social" required>
+   <input type="email" id="c-email" placeholder="E-mail" required>
+   <button type="submit" class="btn primary">Salvar</button>
+  </form>
+  <h3>Clientes</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-clientes"><thead><tr><th>Nome</th><th>E-mail</th><th>Ação</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- RANKING -->
+<div id="sec-ranking" class="view-section">
+ <div class="card">
+  <h3>Ranking Geral</h3>
+  <div class="table-responsive"><table class="data-table" id="tbl-ranking-full"><thead><tr><th>Pos.</th><th>Vendedor</th><th>Equipe</th><th>Total Vendido</th><th>Comissão</th></tr></thead><tbody></tbody></table></div>
+ </div>
+</div>
+
+<!-- CONFIGURAÇÕES -->
+<div id="sec-configuracoes" class="view-section">
+ <div class="card">
+  <h3>Configurações</h3>
+  <p style="color:var(--muted);font-size:13px">Restaurar os dados fictícios iniciais para testes.</p>
+  <button class="btn danger" onclick="resetDemoData()">Restaurar Dados Demonstrativos</button>
+ </div>
+</div>
+
+</main>
+</div>
+
+<!-- MENU MOBILE INFERIOR -->
+<nav class="mobile-nav">
+ <button class="active" onclick="switchTab('visao', this)"><span>⌂</span>Início</button>
+ <button onclick="switchTab('vendedores', this)"><span>♙</span>Vendedores</button>
+ <button onclick="switchTab('vendas', this)"><span>▣</span>Vendas</button>
+ <button onclick="switchTab('ranking', this)"><span>★</span>Ranking</button>
+ <button onclick="openPresentation()"><span>📺</span>Apresentar</button>
+</nav>
+
+<script>
+const initialData = {
+ vendedores: [
+  { id: '1', nome: 'Carlos Silva', equipe: 'Inside Sales', meta: 65000, comissao: 5 },
+  { id: '2', nome: 'Ana Souza', equipe: 'Inside Sales', meta: 60000, comissao: 5 },
+  { id: '3', nome: 'Bruno Lima', equipe: 'Campo', meta: 55000, comissao: 5 },
+  { id: '4', nome: 'Fernanda Costa', equipe: 'Campo', meta: 50000, comissao: 5 },
+  { id: '5', nome: 'Rafael Oliveira', equipe: 'Campo', meta: 40000, comissao: 5 }
+ ],
+ produtos: [
+  { id: '1', nome: 'Notebook S.Edu', preco: 3500 },
+  { id: '2', nome: 'Smartphone S.Edu', preco: 2200 },
+  { id: '3', nome: 'Tablet S.Edu', preco: 1500 },
+  { id: '4', nome: 'Acessórios Kits', preco: 400 }
+ ],
+ clientes: [
+  { id: '1', nome: 'Escola Modelo Ltda', email: 'contato@escolamodelo.com' },
+  { id: '2', nome: 'Colégio Avançar', email: 'financeiro@avancar.edu.br' },
+  { id: '3', nome: 'Instituto Saber', email: 'compras@saber.com' }
+ ],
+ vendas: [
+  { id: '101', vendedorId: '1', produtoId: '1', clienteId: '1', valor: 35000, data: '2026-09-02' },
+  { id: '102', vendedorId: '1', produtoId: '2', clienteId: '2', valor: 27450, data: '2026-09-10' },
+  { id: '103', vendedorId: '2', produtoId: '2', clienteId: '1', valor: 30000, data: '2026-09-05' },
+  { id: '104', vendedorId: '2', produtoId: '3', clienteId: '3', valor: 24320, data: '2026-09-18' },
+  { id: '105', vendedorId: '3', produtoId: '1', clienteId: '2', valor: 46780, data: '2026-09-12' },
+  { id: '106', vendedorId: '4', produtoId: '4', clienteId: '3', valor: 38920, data: '2026-09-15' },
+  { id: '107', vendedorId: '5', produtoId: '3', clienteId: '1', valor: 32110, data: '2026-09-20' }
+ ]
+};
+
+let db = { vendedores: [], produtos: [], clientes: [], vendas: [] };
+
+function initStorage() {
+ try {
+  const local = localStorage.getItem('sedu_dashboard_db');
+  if (local) { db = JSON.parse(local); }
+  else { db = JSON.parse(JSON.stringify(initialData)); saveStorage(); }
+ } catch(e) { db = JSON.parse(JSON.stringify(initialData)); }
+}
+
+function saveStorage() {
+ try { localStorage.setItem('sedu_dashboard_db', JSON.stringify(db)); } catch(e) {}
+ renderAll();
+}
+
+function resetDemoData() {
+ if (confirm("Restaurar dados originais de teste?")) {
+  db = JSON.parse(JSON.stringify(initialData));
+  saveStorage();
+ }
+}
+
+const fmtBRL = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+const fmtNum = v => new Intl.NumberFormat('pt-BR').format(v || 0);
+
+let chartLine, chartDonut;
+
+function initCharts() {
+ Chart.defaults.color='#9badc8'; Chart.defaults.borderColor='#203354';
+
+ const ctxLine = document.getElementById('lineChart').getContext('2d');
+ chartLine = new Chart(ctxLine, {
+  type:'line',
+  data:{ labels:[], datasets:[
+   {label:'Vendas', data:[], borderColor:'#2d9bff', backgroundColor:'#1687ff22', fill:true, tension:.38},
+   {label:'Meta', data:[], borderColor:'#20d8b1', borderDash:[6,5], tension:.35, pointRadius:0}
+  ]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}}}
+ });
+
+ const ctxDonut = document.getElementById('donutChart').getContext('2d');
+ chartDonut = new Chart(ctxDonut, {
+  type:'doughnut',
+  data:{ labels:[], datasets:[{ data:[], backgroundColor:['#1687ff','#16cfa4','#8b5cf6','#ff8b2d','#ff477e','#7183a0'] }]},
+  options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
+ });
+}
+
+function renderAll() {
+ populateSelects();
+ const filteredVendas = getFilteredVendas();
+
+ const totalVendas = filteredVendas.reduce((acc, v) => acc + Number(v.valor), 0);
+ const totalQtd = filteredVendas.length;
+ const ticketMedio = totalQtd > 0 ? totalVendas / totalQtd : 0;
+
+ const selSeller = document.getElementById('filter-seller').value;
+ const selTeam = document.getElementById('filter-team').value;
+
+ let vendedoresAtivos = db.vendedores.filter(v => {
+  const matchS = selSeller === 'all' || v.id === selSeller;
+  const matchT = selTeam === 'all' || v.equipe === selTeam;
+  return matchS && matchT;
+ });
+
+ const metaTotal = vendedoresAtivos.reduce((acc, v) => acc + Number(v.meta), 0);
+ const atingimento = metaTotal > 0 ? Math.round((totalVendas / metaTotal) * 100) : 0;
+
+ let comissaoTotal = 0;
+ filteredVendas.forEach(vnda => {
+  const v = db.vendedores.find(x => x.id === vnda.vendedorId);
+  if (v) comissaoTotal += Number(vnda.valor) * (Number(v.comissao) / 100);
+ });
+
+ document.getElementById('m-vendas').innerText = fmtBRL(totalVendas);
+ document.getElementById('m-qtd').innerText = fmtNum(totalQtd);
+ document.getElementById('m-meta').innerText = fmtBRL(metaTotal);
+ document.getElementById('m-ating').innerText = `${atingimento}% atingido`;
+ document.getElementById('m-ticket').innerText = fmtBRL(ticketMedio);
+ document.getElementById('m-comissao').innerText = fmtBRL(comissaoTotal);
+
+ document.getElementById('fn-leads').innerText = fmtNum(totalQtd * 4);
+ document.getElementById('fn-cont').innerText = fmtNum(totalQtd * 3);
+ document.getElementById('fn-oport').innerText = fmtNum(totalQtd * 2);
+ document.getElementById('fn-prop').innerText = fmtNum(Math.round(totalQtd * 1.5));
+ document.getElementById('fn-ganhos').innerText = fmtNum(totalQtd);
+
+ renderRankings(vendedoresAtivos, filteredVendas);
+ renderCharts(filteredVendas, metaTotal);
+ renderTables();
+}
+
+function getFilteredVendas() {
+ const p = document.getElementById('filter-period').value;
+ const s = document.getElementById('filter-seller').value;
+ const t = document.getElementById('filter-team').value;
+ const prod = document.getElementById('filter-product').value;
+
+ return db.vendas.filter(vnda => {
+  const vendedor = db.vendedores.find(v => v.id === vnda.vendedorId) || {};
+  const matchPeriod = p === 'all' || (vnda.data && vnda.data.startsWith(p));
+  const matchSeller = s === 'all' || vnda.vendedorId === s;
+  const matchTeam = t === 'all' || vendedor.equipe === t;
+  const matchProd = prod === 'all' || vnda.produtoId === prod;
+
+  return matchPeriod && matchSeller && matchTeam && matchProd;
+ });
+}
+
+function renderRankings(vendedoresAtivos, filteredVendas) {
+ const rankData = vendedoresAtivos.map(v => {
+  const vendasVendedor = filteredVendas.filter(x => x.vendedorId === v.id);
+  const total = vendasVendedor.reduce((acc, x) => acc + Number(x.valor), 0);
+  const ating = v.meta > 0 ? Math.round((total / v.meta) * 100) : 0;
+  const comissao = total * (Number(v.comissao) / 100);
+  return { ...v, total, ating, comissao };
+ }).sort((a,b) => b.total - a.total);
+
+ const tbodyOverview = document.querySelector('#tbl-rank-overview tbody');
+ tbodyOverview.innerHTML = '';
+
+ rankData.forEach(r => {
+  const initials = r.nome ? r.nome.split(' ').map(n=>n[0]).join('').substring(0,2) : 'VS';
+  tbodyOverview.innerHTML += `<tr>
+   <td><div class="seller"><div class="mini-avatar">${initials}</div><b>${r.nome}</b></div></td>
+   <td>${fmtBRL(r.total)}</td>
+   <td><b>${r.ating}%</b><div class="bar"><i style="width:${Math.min(r.ating,100)}%"></i></div></td>
+  </tr>`;
+ });
+
+ const tbodyFull = document.querySelector('#tbl-ranking-full tbody');
+ tbodyFull.innerHTML = '';
+ rankData.forEach((r, idx) => {
+  tbodyFull.innerHTML += `<tr>
+   <td><b>#${idx + 1}</b></td>
+   <td>${r.nome}</td>
+   <td>${r.equipe}</td>
+   <td>${fmtBRL(r.total)}</td>
+   <td>${fmtBRL(r.comissao)}</td>
+  </tr>`;
+ });
+
+ const tbodyMetas = document.querySelector('#tbl-metas tbody');
+ tbodyMetas.innerHTML = '';
+ rankData.forEach(r => {
+  tbodyMetas.innerHTML += `<tr>
+   <td><b>${r.nome}</b></td>
+   <td>${fmtBRL(r.meta)}</td>
+   <td>${fmtBRL(r.total)}</td>
+   <td>${r.ating}%</td>
+   <td><span class="${r.ating >= 100 ? 'up':'down'}">${r.ating >= 100 ? 'Alcançada' : 'Em andamento'}</span></td>
+  </tr>`;
+ });
+}
+
+function renderCharts(vendas, metaTotal) {
+ const dates = [...new Set(vendas.map(v => v.data))].sort();
+ const totalsByDate = dates.map(d => vendas.filter(v => v.data === d).reduce((a,b) => a + Number(b.valor), 0));
+ const metaPoints = dates.map(() => dates.length > 0 ? metaTotal / dates.length : 0);
+
+ chartLine.data.labels = dates;
+ chartLine.data.datasets[0].data = totalsByDate;
+ chartLine.data.datasets[1].data = metaPoints;
+ chartLine.update();
+
+ const prodCounts = {};
+ vendas.forEach(v => {
+  const p = db.produtos.find(x => x.id === v.produtoId);
+  const name = p ? p.nome : 'Outros';
+  prodCounts[name] = (prodCounts[name] || 0) + Number(v.valor);
+ });
+
+ chartDonut.data.labels = Object.keys(prodCounts);
+ chartDonut.data.datasets[0].data = Object.values(prodCounts);
+ chartDonut.update();
+}
+
+function populateSelects() {
+ const selS = document.getElementById('filter-seller');
+ const selP = document.getElementById('filter-product');
+ const vndaS = document.getElementById('vnda-vendedor');
+ const vndaP = document.getElementById('vnda-produto');
+ const vndaC = document.getElementById('vnda-cliente');
+
+ const curS = selS.value; const curP = selP.value;
+ const curVS = vndaS.value; const curVP = vndaP.value; const curVC = vndaC.value;
+
+ selS.innerHTML = '<option value="all">Todos os vendedores</option>';
+ vndaS.innerHTML = '<option value="">Vendedor</option>';
+ db.vendedores.forEach(v => {
+  selS.innerHTML += `<option value="${v.id}">${v.nome}</option>`;
+  vndaS.innerHTML += `<option value="${v.id}">${v.nome}</option>`;
+ });
+
+ selP.innerHTML = '<option value="all">Todos os produtos</option>';
+ vndaP.innerHTML = '<option value="">Produto</option>';
+ db.produtos.forEach(p => {
+  selP.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+  vndaP.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+ });
+
+ vndaC.innerHTML = '<option value="">Cliente</option>';
+ db.clientes.forEach(c => {
+  vndaC.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+ });
+
+ selS.value = curS || 'all'; selP.value = curP || 'all';
+ vndaS.value = curVS || ''; vndaP.value = curVP || ''; vndaC.value = curVC || '';
+}
+
+function autoFillPrice() {
+ const pId = document.getElementById('vnda-produto').value;
+ const prod = db.produtos.find(p => p.id === pId);
+ if (prod) { document.getElementById('vnda-valor').value = prod.preco; }
+}
+
+function renderTables() {
+ const tbV = document.querySelector('#tbl-vendedores tbody');
+ tbV.innerHTML = '';
+ db.vendedores.forEach(v => {
+  tbV.innerHTML += `<tr>
+   <td>${v.nome}</td><td>${v.equipe}</td><td>${fmtBRL(v.meta)}</td><td>${v.comissao}%</td>
+   <td><button class="btn danger" onclick="deleteItem('vendedores','${v.id}')">X</button></td>
+  </tr>`;
+ });
+
+ const tbP = document.querySelector('#tbl-produtos tbody');
+ tbP.innerHTML = '';
+ db.produtos.forEach(p => {
+  tbP.innerHTML += `<tr>
+   <td>${p.nome}</td><td>${fmtBRL(p.preco)}</td>
+   <td><button class="btn danger" onclick="deleteItem('produtos','${p.id}')">X</button></td>
+  </tr>`;
+ });
+
+ const tbC = document.querySelector('#tbl-clientes tbody');
+ tbC.innerHTML = '';
+ db.clientes.forEach(c => {
+  tbC.innerHTML += `<tr>
+   <td>${c.nome}</td><td>${c.email}</td>
+   <td><button class="btn danger" onclick="deleteItem('clientes','${c.id}')">X</button></td>
+  </tr>`;
+ });
+
+ const tbVnda = document.querySelector('#tbl-vendas tbody');
+ tbVnda.innerHTML = '';
+ db.vendas.forEach(v => {
+  const vend = db.vendedores.find(x => x.id === v.vendedorId)?.nome || '-';
+  const prod = db.produtos.find(x => x.id === v.produtoId)?.nome || '-';
+  const cli = db.clientes.find(x => x.id === v.clienteId)?.nome || '-';
+  tbVnda.innerHTML += `<tr>
+   <td>${v.data}</td><td>${vend}</td><td>${prod}</td><td>${cli}</td><td>${fmtBRL(v.valor)}</td>
+   <td><button class="btn danger" onclick="deleteItem('vendas','${v.id}')">X</button></td>
+  </tr>`;
+ });
+}
+
+function addVendedor(e) {
+ if(e) e.preventDefault();
+ const nome = document.getElementById('v-nome').value;
+ const equipe = document.getElementById('v-equipe').value;
+ const meta = document.getElementById('v-meta').value;
+ const comissao = document.getElementById('v-comissao').value;
+
+ if (!nome || !meta) return;
+ db.vendedores.push({ id: Date.now().toString(), nome, equipe, meta: Number(meta), comissao: Number(comissao) });
+ document.getElementById('form-vendedor').reset();
+ saveStorage();
+}
+
+function addProduto(e) {
+ if(e) e.preventDefault();
+ const nome = document.getElementById('p-nome').value;
+ const preco = document.getElementById('p-preco').value;
+
+ if (!nome || !preco) return;
+ db.produtos.push({ id: Date.now().toString(), nome, preco: Number(preco) });
+ document.getElementById('form-produto').reset();
+ saveStorage();
+}
+
+function addCliente(e) {
+ if(e) e.preventDefault();
+ const nome = document.getElementById('c-nome').value;
+ const email = document.getElementById('c-email').value;
+
+ if (!nome) return;
+ db.clientes.push({ id: Date.now().toString(), nome, email });
+ document.getElementById('form-cliente').reset();
+ saveStorage();
+}
+
+function addVenda(e) {
+ if(e) e.preventDefault();
+ const vendedorId = document.getElementById('vnda-vendedor').value;
+ const produtoId = document.getElementById('vnda-produto').value;
+ const clienteId = document.getElementById('vnda-cliente').value;
+ const valor = document.getElementById('vnda-valor').value;
+ const data = document.getElementById('vnda-data').value;
+
+ if (!vendedorId || !produtoId || !valor || !data) return;
+ db.vendas.push({ id: Date.now().toString(), vendedorId, produtoId, clienteId, valor: Number(valor), data });
+ document.getElementById('form-venda').reset();
+ saveStorage();
+}
+
+function deleteItem(collection, id) {
+ if (confirm("Remover este registro?")) {
+  db[collection] = db[collection].filter(x => x.id !== id);
+  saveStorage();
+ }
+}
+
+function switchTab(sectionId, el) {
+ document.querySelectorAll('.nav button, .mobile-nav button').forEach(b => b.classList.remove('active'));
+ if (el) el.classList.add('active');
+ document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+ document.getElementById(`sec-${sectionId}`).classList.add('active');
+ window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function openPresentation(){ 
+ switchTab('visao', document.querySelector('.nav button'));
+ document.body.classList.add('presentation-mode');
+ document.documentElement.requestFullscreen?.(); 
+ setTimeout(() => { chartLine.resize(); chartDonut.resize(); }, 150);
+}
+
+function closePresentation(){ 
+ document.body.classList.remove('presentation-mode');
+ document.exitFullscreen?.(); 
+ setTimeout(() => { chartLine.resize(); chartDonut.resize(); }, 150);
+}
+
+function exportExcel() {
+ const wb = XLSX.utils.book_new();
+ const filteredVendas = getFilteredVendas();
+ const totalVendas = filteredVendas.reduce((acc, v) => acc + Number(v.valor), 0);
+
+ const rowsPerf = [
+  ['S.Edu Dashboard - Relatório de Performance'],
+  ['Data da Exportação', new Date().toLocaleDateString('pt-BR')],
+  [],
+  ['MÉTRICA', 'VALOR'],
+  ['Total de Vendas', totalVendas],
+  ['Vendas Realizadas', filteredVendas.length],
+  ['Ticket Médio', filteredVendas.length ? totalVendas/filteredVendas.length : 0]
+ ];
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsPerf), 'Performance');
+
+ const rowsVendas = [['ID', 'Data', 'Vendedor', 'Produto', 'Cliente', 'Valor']];
+ db.vendas.forEach(v => {
+  rowsVendas.push([
+   v.id, v.data,
+   db.vendedores.find(x => x.id === v.vendedorId)?.nome || '',
+   db.produtos.find(x => x.id === v.produtoId)?.nome || '',
+   db.clientes.find(x => x.id === v.clienteId)?.nome || '',
+   v.valor
+  ]);
+ });
+ XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsVendas), 'Vendas');
+
+ XLSX.writeFile(wb, 'SEdu_Dashboard_Completo.xlsx');
+}
+
+window.onload = () => {
+ initStorage();
+ initCharts();
+ renderAll();
+ document.getElementById('vnda-data').value = new Date().toISOString().split('T')[0];
+};
+</script>
+</body>
+</html>
